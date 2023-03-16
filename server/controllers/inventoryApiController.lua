@@ -13,6 +13,9 @@ AddEventHandler("vorpCore:addItem", InventoryAPI.addItem)
 RegisterServerEvent("vorpCore:subItem")
 AddEventHandler("vorpCore:subItem", InventoryAPI.subItem)
 
+RegisterServerEvent("vorpCore:subItemByName")
+AddEventHandler("vorpCore:subItemByName", InventoryAPI.subItemByName)
+
 RegisterServerEvent("vorpCore:setItemMetadata")
 AddEventHandler("vorpCore:setItemMetadata", InventoryAPI.setItemMetadata)
 
@@ -42,6 +45,9 @@ AddEventHandler("vorpCore:getItemMatchingMetadata", InventoryAPI.getItemMatching
 
 RegisterServerEvent("vorpCore:getItemCount")
 AddEventHandler("vorpCore:getItemCount", InventoryAPI.getItems)
+
+RegisterServerEvent("vorpCore:getItemCountByName")
+AddEventHandler("vorpCore:getItemCountByName", InventoryAPI.getItemCountByName)
 
 RegisterServerEvent("vorpCore:getUserInventory")
 AddEventHandler("vorpCore:getUserInventory", InventoryAPI.getInventory)

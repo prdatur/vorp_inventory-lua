@@ -348,6 +348,29 @@ InventoryAPI.getItems = function(player, cb, itemName, metadata)
 	end
 end
 
+InventoryAPI.getItemCountByName = function(player, cb, itemName, metadata)
+	local _source = player
+	local sourceCharacter = Core.getUser(_source).getUsedCharacter
+	local identifier = sourceCharacter.identifier
+	local svItem = svItems[itemName]
+
+	if svItem == nil then
+		Log.print("[^2API getItemCountByName^7] ^1Error^7: Item [^3" .. tostring(itemName) .. "^7] does not exist in DB.")
+		cb(0)
+		return
+	end
+	local userInventory = UsersInventories["default"][identifier]
+
+	local completeQuantity = 0
+	for _, item in pairs(userInventory) do
+		if item:getName() == itemName and (metadata == nil or SharedUtils.Table_contains(item:getMetadata(), metadata)) then
+			completeQuantity = completeQuantity + item:getCount()
+		end
+	end
+
+	cb(completeQuantity)
+end
+
 
 
 InventoryAPI.getItemByName = function(player, itemName, cb)
@@ -578,6 +601,102 @@ InventoryAPI.subItemID = function(player, id, cb)
 		DbService.SetItemAmount(charIdentifier, item:getId(), item:getCount())
 	end
 	cb(true)
+end
+
+InventoryAPI.subItemByName = function(player, name, amount, metadata, cb)
+	local _source = player
+	local sourceUser = Core.getUser(_source)
+	local svItem = svItems[name]
+	local removedItems = {}
+
+	if cb == nil then
+		cb = function(r)
+		end
+	end
+
+	if svItem == nil then
+		Log.print("[^2API SubItemByName^7] ^1Error^7: Item [^3" .. tostring(name) .. "^7] does not exist in DB.")
+		return
+	end
+
+	if (sourceUser) == nil then
+		return
+	end
+
+	local sourceCharacter = sourceUser.getUsedCharacter
+	local identifier = sourceCharacter.identifier
+	local charIdentifier = sourceCharacter.charIdentifier
+	local userInventory = UsersInventories["default"][identifier]
+
+	if userInventory then
+		-- find possible items to delete
+		local completeQuantity = 0
+		for _, item in pairs(userInventory) do
+			if item:getName() == name and (metadata == nil or SharedUtils.Table_contains(item:getMetadata(), metadata)) then
+				completeQuantity = completeQuantity + item:getCount()
+			end
+		end
+
+		-- Not enough amount
+		if completeQuantity < amount then
+			cb(removedItems)
+			return
+		end
+
+		-- remove item count until amount is 0
+		while amount > 0 do
+			local possibleItems = {}
+			for _, item in pairs(userInventory) do
+				if item:getName() == name and (metadata == nil or SharedUtils.Table_contains(item:getMetadata(), metadata)) then
+					completeQuantity = completeQuantity + item:getCount()
+					table.insert(possibleItems, item)
+				end
+			end
+
+			for _, item in ipairs(possibleItems) do
+				local sourceItemCount = item:getCount()
+
+				local removedItem = {
+					id = item:getId(),
+					item = item:getName(),
+					label = item:getLabel(),
+					count = item:getCount(),
+					metadata = item:getMetadata(),
+				}
+
+				if sourceItemCount < amount then
+					item:quitCount(sourceItemCount)
+					removedItem["amount"] = sourceItemCount
+					amount = amount - sourceItemCount
+				else
+					item:quitCount(amount)
+					removedItem["amount"] = amount + 0
+					amount = 0
+				end
+
+
+				table.insert(removedItems, removedItem)
+
+				if item:getCount() == 0 then
+					userInventory[item:getId()] = nil
+					DbService.DeleteItem(charIdentifier, item:getId())
+				else
+					DbService.SetItemAmount(charIdentifier, item:getId(), item:getCount())
+				end
+
+				TriggerClientEvent("vorpCoreClient:subItem", _source, item:getId(), item:getCount())
+
+				if amount == 0 then
+					break
+				end
+			end
+		end
+
+		cb(removedItems)
+		return
+	end
+
+	cb(removedItems)
 end
 
 InventoryAPI.subItem = function(player, name, amount, metadata, cb)

@@ -121,6 +121,16 @@ exports('vorp_inventoryApi', function()
         return Citizen.Await(result_promise)
     end
 
+    self.subItemByName = function(source, itemName, qty, metadata)
+        local result_promise = promise.new()
+
+        TriggerEvent("vorpCore:subItemByName", source, tostring(itemName), tonumber(qty), metadata, function(res)
+            result_promise:resolve(res)
+        end)
+
+        return Citizen.Await(result_promise)
+    end
+
     self.setItemMetadata = function(source, itemId, metadata, amount)
         local result_promise = promise.new()
 
@@ -176,6 +186,16 @@ exports('vorp_inventoryApi', function()
         local count_promise = promise.new()
 
         TriggerEvent("vorpCore:getItemCount", source, function(itemcount)
+            count_promise:resolve(itemcount)
+        end, tostring(item), metadata)
+
+        return Citizen.Await(count_promise)
+    end
+
+    self.getItemCountByName = function(source, item, metadata)
+        local count_promise = promise.new()
+
+        TriggerEvent("vorpCore:getItemCountByName", source, function(itemcount)
             count_promise:resolve(itemcount)
         end, tostring(item), metadata)
 
