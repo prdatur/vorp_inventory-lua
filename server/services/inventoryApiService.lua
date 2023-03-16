@@ -63,6 +63,7 @@ InventoryAPI.canCarryItem = function(player, itemName, amount, cb)
 	local _source = player
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
 	local identifier = sourceCharacter.identifier
+	local charid = sourceCharacter.charIdentifier
 	local svItem = svItems[itemName]
 
 	if svItem == nil then
@@ -83,9 +84,9 @@ InventoryAPI.canCarryItem = function(player, itemName, amount, cb)
 
 		if total <= limit then
 			if Config.MaxItemsInInventory.Items ~= -1 then
-				local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier) + amount
-
-				if sourceInventoryItemCount <= Config.MaxItemsInInventory.Items then
+				local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier, charid)
+				local finalAmount = sourceInventoryItemCount + amount
+				if finalAmount <= Config.MaxItemsInInventory.Items then
 					cb(true)
 				else
 					cb(false)
@@ -98,9 +99,9 @@ InventoryAPI.canCarryItem = function(player, itemName, amount, cb)
 		end
 	else
 		if Config.MaxItemsInInventory.Items ~= -1 then
-			local totalAmount = InventoryAPI.getUserTotalCount(identifier) + amount
-
-			if totalAmount <= Config.MaxItemsInInventory.Items then
+			local totalAmount = InventoryAPI.getUserTotalCount(identifier, charid)
+			local finalAmount = totalAmount + amount
+			if finalAmount <= Config.MaxItemsInInventory.Items then
 				cb(true)
 			else
 				cb(false)
@@ -406,7 +407,7 @@ InventoryAPI.getItemContainingMetadata = function(player, itemName, metadata, cb
 	end
 
 	local item = SvUtils.FindItemByNameAndContainingMetadata("default", identifier, itemName, metadata)
-	
+
 	if item then
 		cb(item)
 	else
@@ -753,6 +754,13 @@ InventoryAPI.subItem = function(player, name, amount, metadata, cb)
 	end
 end
 
+---comment
+---@param player integer
+---@param itemId integer
+---@param metadata table
+---@param amount integer an ammount if you require to remove this many or set this many
+---@param cb any
+---@return any
 InventoryAPI.setItemMetadata = function(player, itemId, metadata, amount, cb)
 	local _source = player
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
@@ -770,6 +778,7 @@ InventoryAPI.setItemMetadata = function(player, itemId, metadata, amount, cb)
 	if not item then
 		return cb(false)
 	end
+
 	local count = item:getCount()
 
 	if amountRemove >= count then -- if greater or equals we set meta data
@@ -777,15 +786,15 @@ InventoryAPI.setItemMetadata = function(player, itemId, metadata, amount, cb)
 		item:setMetadata(metadata)
 		TriggerClientEvent("vorpCoreClient:SetItemMetadata", _source, itemId, metadata)
 		return cb(true)
-	else -- we set meta data to only the amount we want
-		item:quitCount(amountRemove)
-		DbService.SetItemAmount(charId, item.id, item:getCount())
-		TriggerClientEvent("vorpCoreClient:subItem", _source, item:getId(), item:getCount())
-		DbService.CreateItem(charId, item:getId(), amount, metadata, function(craftedItem)
+	else                                                                               -- we set meta data to only the amount we want
+		item:quitCount(amountRemove)                                                   -- item remove
+		DbService.SetItemAmount(charId, item.id, item:getCount())                      --
+		TriggerClientEvent("vorpCoreClient:subItem", _source, item:getId(), item:getCount()) -- remove
+		DbService.CreateItem(charId, item:getId(), amount or 1, metadata, function(craftedItem)
 			item = Item:New(
 				{
 					id = craftedItem.id,
-					count = amount,
+					count = amount or 1,
 					limit = item:getLimit(),
 					label = item:getLabel(),
 					metadata = SharedUtils.MergeTables(item:getMetadata(), metadata),
@@ -1089,11 +1098,16 @@ InventoryAPI.subWeapon = function(player, weaponId)
 	TriggerClientEvent("vorpCoreClient:subWeapon", _source, weaponId)
 end
 
-InventoryAPI.getUserTotalCount = function(identifier)
+InventoryAPI.getUserTotalCount = function(identifier, charid)
 	local userTotalItemCount = 0
 	local userInventory = UsersInventories["default"][identifier]
 	for _, item in pairs(userInventory) do
-		userTotalItemCount = userTotalItemCount + item:getCount()
+		if item:getCount() == nil then
+			userInventory[item:getId()] = nil
+			DbService.DeleteItem(charid, item:getId())
+		else
+			userTotalItemCount = userTotalItemCount + item:getCount()
+		end
 	end
 	return userTotalItemCount
 end
