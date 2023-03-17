@@ -114,3 +114,18 @@ InventoryApiService.subComponent = function(weaponId, component)
         end
     end
 end
+
+InventoryApiService.getUserWeapons = function(cb)
+    local result = {}
+    for _, currentWeapon in pairs(UserWeapons) do
+        table.insert(result, {
+            name = currentWeapon:getName(),
+            id = currentWeapon:getId(),
+            propietary = currentWeapon:getPropietary(),
+            used = currentWeapon:getUsed(),
+            ammo = currentWeapon:getAllAmmo(),
+            desc = currentWeapon:getDesc()
+        })
+    end
+    cb(result)
+end
