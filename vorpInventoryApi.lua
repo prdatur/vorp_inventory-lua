@@ -270,26 +270,10 @@ exports('vorp_inventoryApi', function()
     end
 
     self.canCarryItem = function(source, item, amount)
-        local can = false
-
-        -- Limit is a restricted field in sql. Query for it directly gives an error.
-        local query = "SELECT * FROM items WHERE item=@id;"
-        local params = { ['@id'] = item }
-        local result = dbQuery(query, params)
-
-        -- Add check for if the item exists.
-        local itemcount = self.getItemCount(source, item)
-        local reqCount = itemcount + amount
-
-        if result and result[1] then
-            local limit = tonumber(result[1].limit)
-            can = reqCount <= limit
-        else
-            -- Object does not exist in inventory, it can not be added
-            print('Item does not exist in Items table. Item: ' .. item)
-        end
-
-        return can
+        local dbItem = self.getDBItem(source, item)
+        if not dbItem then return false end
+        if self.getItemCountByName(source, item) + amount > dbItem.limit then return false end
+        return self.canCarryItems(source, amount)
     end
 
     self.getUserWeapon = function(source, weaponId)
