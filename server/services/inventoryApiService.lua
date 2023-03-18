@@ -45,10 +45,11 @@ InventoryAPI.canCarryAmountItem = function(player, amount, cb)
 	local _source = player
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
 	local identifier = sourceCharacter.identifier
+	local charid = sourceCharacter.charIdentifier
 	local userInventory = UsersInventories["default"][identifier]
 
 	if userInventory and Config.MaxItemsInInventory.Items ~= -1 then
-		local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier) + amount
+		local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier, charid) + amount
 		if sourceInventoryItemCount <= Config.MaxItemsInInventory.Items then
 			cb(true)
 		else
@@ -595,7 +596,7 @@ InventoryAPI.subItemID = function(player, id, cb)
 
 	TriggerClientEvent("vorpCoreClient:subItem", _source, item:getId(), item:getCount())
 
-	if sourceItemCount == 0 then
+	if sourceItemCount == 1 then
 		userInventory[item:getId()] = nil
 		DbService.DeleteItem(charIdentifier, item:getId())
 	else
