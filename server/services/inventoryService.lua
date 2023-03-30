@@ -1036,7 +1036,11 @@ InventoryService.MoveToCustom = function(obj)
 	local job = sourceCharacter.job
 	local grade = sourceCharacter.jobGrade
 	local sourceCharIdentifier = sourceCharacter.charIdentifier
-	local Table = CustomInventoryInfos[invId].PermissionMoveTo
+	local Table = {}
+	if not CustomInventoryInfos[invId] then return end
+	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionMoveTo then
+		Table = CustomInventoryInfos[invId].PermissionMoveTo
+	end
 	local CanMove = InventoryService.DoesHavePermission(invId, job, grade, Table)
 	local IsBlackListed = InventoryService.CheckIsBlackListed(invId, string.lower(item.name)) -- lower so we can checkitems and weapons
 
@@ -1114,7 +1118,12 @@ InventoryService.TakeFromCustom = function(obj)
 	local sourceCharIdentifier = sourceCharacter.charIdentifier
 	local job = sourceCharacter.job
 	local grade = sourceCharacter.jobGrade
-	local Table = CustomInventoryInfos[invId].PermissionTakeFrom
+	local Table = {}
+
+	if not CustomInventoryInfos[invId] then return end
+	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionTakeFrom.PermissionTakeFrom then
+		Table = CustomInventoryInfos[invId].PermissionTakeFrom
+	end
 	local CanMove = InventoryService.DoesHavePermission(invId, job, grade, Table)
 
 	if not CanMove then
