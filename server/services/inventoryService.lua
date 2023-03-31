@@ -1121,9 +1121,10 @@ InventoryService.TakeFromCustom = function(obj)
 	local Table = {}
 
 	if not CustomInventoryInfos[invId] then return end
-	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionTakeFrom.PermissionTakeFrom then
+	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionTakeFrom then
 		Table = CustomInventoryInfos[invId].PermissionTakeFrom
 	end
+
 	local CanMove = InventoryService.DoesHavePermission(invId, job, grade, Table)
 
 	if not CanMove then
