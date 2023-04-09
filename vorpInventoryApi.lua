@@ -315,6 +315,10 @@ exports('vorp_inventoryApi', function()
             TriggerClientEvent("vorp_inventory:OpenInv", source)
         end
     end
+        
+    self.setCustomInventoryTotalLimit = function(invId, newLimit)
+		TriggerEvent("vorpCore:setInventoryTotalLimit", invId, newLimit)
+	end
 
     return self
 end)
