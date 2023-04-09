@@ -1349,6 +1349,19 @@ InventoryAPI.removeInventory = function(id, name)
 	end
 end
 
+InventoryAPI.setCustomInventoryTotalLimit = function(id, newLimit)
+	if CustomInventoryInfos[id] == nil or newLimit == nil then
+		return
+	end
+
+	CustomInventoryInfos[id].limit = newLimit
+
+	if Config.Debug then
+		Wait(9000) -- so it doesn't print everywhere in the console
+		Log.print("Custom inventory[^3" .. id .. "^7] set limit to ^2" .. newLimit .. "^7")
+	end
+end
+
 InventoryAPI.setCustomInventoryItemLimit = function(id, itemName, limit)
 	if CustomInventoryInfos[id] == nil or itemName == nil or limit == nil then
 		return
