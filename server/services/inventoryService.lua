@@ -3,6 +3,10 @@ ItemPickUps = {}
 MoneyPickUps = {}
 GoldPickUps = {}
 Core = {}
+DiscordLog = exports.dww_utils:DiscordLog(Config.webhook, GetCurrentResourceName())
+DiscordLogCustomInv = exports.dww_utils:DiscordLog(Config.WebHook.CustomInventoryMoveTo, GetCurrentResourceName())
+DwwUtils = exports.dww_utils:GetUtils()
+DwwAccessApi = exports.dww_access:Api();
 
 local newchar = {} -- new
 local timer = 120  -- new
@@ -82,7 +86,7 @@ InventoryService.DropMoney = function(amount)
 
 		if Config.NewPlayers then
 			if contains(newchar, charid) then                                             -- new line
-				TriggerClientEvent("vorp:TipRight", _source, "Cant Drop Money as a new player", 5000) -- new line
+				TriggerClientEvent("vorp:TipRight", _source, "Du kannst es einem neuen Spieler nicht klauen.", 5000) -- new line
 				SvUtils.Trem(_source)                                                     -- new line
 				return                                                                    -- new line
 			end                                                                           -- new line
@@ -95,9 +99,9 @@ InventoryService.DropMoney = function(amount)
 		else
 			userCharacter.removeCurrency(0, amount)
 			TriggerClientEvent("vorpInventory:createMoneyPickup", _source, amount)
-			local title = _U('drop')
-			local description = "**Money** `" .. amount .. "`" .. "\n **Playername** `" .. charname .. "`\n"
-			Core.AddWebhook(title, Config.webhook, description, color, "ID:" .. _source, logo, footerlogo, avatar)
+			DiscordLog(_source, "Geld wegwerfen", "", {
+				["currency"] = {["value"] = amount},
+			})
 		end
 		SvUtils.Trem(_source)
 	end
@@ -113,7 +117,7 @@ InventoryService.DropAllMoney = function()
 
 		if Config.NewPlayers then
 			if contains(newchar, charid) then                                             -- new line
-				TriggerClientEvent("vorp:TipRight", _source, "Cant Drop Money as a new player", 5000) -- new line
+				TriggerClientEvent("vorp:TipRight", _source, "Du kannst es einem neuen Spieler nicht klauen.", 5000) -- new line
 				SvUtils.Trem(_source)                                                     -- new line
 				return                                                                    -- new line
 			end                                                                           -- new line
@@ -137,7 +141,7 @@ InventoryService.DropPartMoney = function()
 
 	if Config.NewPlayers then
 		if contains(newchar, charid) then                                                -- new line
-			TriggerClientEvent("vorp:TipRight", _source, "Cant Drop Money as a new player", 5000) -- new line
+			TriggerClientEvent("vorp:TipRight", _source, "Du kannst es einem neuen Spieler nicht klauen.", 5000) -- new line
 			SvUtils.Trem(_source)                                                        -- new line
 			return                                                                       -- new line
 		end                                                                              -- new line
@@ -189,9 +193,9 @@ InventoryService.giveMoneyToPlayer = function(target, amount)
 			TriggerClientEvent("vorp:TipRight", _target, _U("YouReceived", tostring(amount), "ID: " .. _source), 3000)
 			Wait(3000)
 			TriggerClientEvent("vorp_inventory:ProcessingReady", _source)
-			local title = _U('gave')
-			local description = "**Money** `" .. amount .. "`" .. "\n **Playername** `" .. charname .. "`\n"
-			Core.AddWebhook(title, Config.webhook, description, color, "ID:" .. _source, logo, footerlogo, avatar)
+			DiscordLog(_source, "Geld übergeben", "", DwwUtils.MergeTables(DwwUtils.GetLogCharacter(_target, 'receiver'), {
+				["currency"] = {["value"] = amount},
+			}))
 		end
 		SvUtils.Trem(_source)
 	end
@@ -263,8 +267,8 @@ InventoryService.giveGoldToPlayer = function(target, amount)
 		sourceCharacter.removeCurrency(1, amount)
 		targetCharacter.addCurrency(1, amount)
 
-		TriggerClientEvent("vorp:TipRight", _source, _U("YouPaid", tostring(amount), "ID: " .. _target), 3000)
-		TriggerClientEvent("vorp:TipRight", _target, _U("YouReceived", tostring(amount), "ID: " .. _source), 3000)
+			TriggerClientEvent("vorp:TipRight", _source, _U("YouPaid", tostring(amount), "ID: " .. _target), 3000)
+			TriggerClientEvent("vorp:TipRight", _target, _U("YouReceived", tostring(amount), "ID: " .. _source), 3000)
 		Wait(3000)
 	end
 	SvUtils.Trem(_source)
@@ -294,14 +298,18 @@ InventoryService.usedWeapon = function(id, _used, _used2)
 end
 
 InventoryService.subItem = function(target, invId, itemId, amount)
-	local _source = target
-	local sourceCharacter = Core.getUser(_source).getUsedCharacter
-	local identifier = sourceCharacter.identifier
 	local userInventory = nil
 
 	if CustomInventoryInfos[invId].shared then
 		userInventory = UsersInventories[invId]
 	else
+		local identifier = target
+		if type(target) ~= "string" then
+			local _source = target
+			local sourceCharacter = Core.getUser(_source).getUsedCharacter
+			identifier = sourceCharacter.identifier
+		end
+
 		userInventory = UsersInventories[invId][identifier]
 	end
 
@@ -459,11 +467,14 @@ InventoryService.onPickup = function(obj)
 						InventoryService.addItem(_source, "default", name, amount, metadata, function(item)
 							if item ~= nil then
 								local title = _U('itempickup')
-								local description = "**Amount** `" ..
+								local description = "**Anzahl** `" ..
 									amount ..
-									"`\n **Item** `" .. name .. "`" .. "\n **Playername** `" .. charname .. "`\n"
-								Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo,
-									avatar)
+									"`\n **Item** `" .. name .. "`" .. "\n **Spielername** `" .. charname .. "`\n"
+
+								DiscordLog(_source, "Item aufheben", "", {
+									["amount"] = amount,
+									["item"] = {["id"] = name},
+								})
 
 								TriggerClientEvent("vorpInventory:sharePickupClient", -1, name, ItemPickUps[obj].obj,
 									amount, metadata,
@@ -490,10 +501,13 @@ InventoryService.onPickup = function(obj)
 					local weaponId = ItemPickUps[obj].weaponid
 					local weaponObj = ItemPickUps[obj].obj
 					UsersWeapons["default"][weaponId]:setDropped(0)
-					local title = _U('weppickup')
-					local description = "**Weapon** `" ..
-						userWeapons[weaponId]:getName() .. "`" .. "\n **Playername** `" .. charname .. "`\n"
-					Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo, avatar)
+					DiscordLog(_source, "Item Waffe", "", {
+						["weapon"] = {
+							["id"] = weaponId,
+							["name"] = userWeapons[weaponId]:getName(),
+						},
+					})
+
 					TriggerClientEvent("vorpInventory:sharePickupClient", -1, name, weaponObj, 1, metadata,
 						ItemPickUps[obj].coords, 2,
 						weaponId)
@@ -521,9 +535,11 @@ InventoryService.onPickupMoney = function(obj)
 			local moneyObj = MoneyPickUps[obj].obj
 			local moneyAmount = MoneyPickUps[obj].amount
 			local moneyCoords = MoneyPickUps[obj].coords
-			local title = _U('itempickup')
-			local description = "**Money** `" .. moneyAmount .. " $`" .. "\n **Playername** `" .. charname .. "`\n"
-			Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo, avatar)
+			DiscordLog(_source, "Geld aufheben", "", {
+				["currency"] = {["value"] = moneyAmount},
+				["position"] = moneyCoords,
+			})
+
 			TriggerClientEvent("vorpInventory:shareMoneyPickupClient", -1, moneyObj, moneyAmount, moneyCoords, 2)
 			TriggerClientEvent("vorpInventory:removePickupClient", -1, moneyObj)
 			TriggerClientEvent("vorpInventory:playerAnim", _source, moneyObj)
@@ -599,11 +615,12 @@ InventoryService.DropWeapon = function(weaponId)
 		SvUtils.ProcessUser(_source)
 		InventoryService.subWeapon(_source, weaponId)
 		UsersWeapons["default"][weaponId]:setDropped(1)
-
-		local title = _U('drop')
-		local description = "**Weapon** `" ..
-			UsersWeapons["default"][weaponId]:getName() .. "`" .. "\n **Playername** `" .. charname .. "`\n"
-		Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo, avatar)
+		DiscordLog(_source, "Waffe wegwerfen", "", {
+			["weapon"] = {
+				["id"] = weaponId,
+				["name"] = UsersWeapons["default"][weaponId]:getName(),
+			},
+		})
 		TriggerClientEvent("vorpInventory:createPickup", _source, UsersWeapons["default"][weaponId]:getName(), 1, {},
 			weaponId)
 		SvUtils.Trem(_source)
@@ -612,14 +629,19 @@ end
 
 InventoryService.DropItem = function(itemName, itemId, amount, metadata)
 	local _source = source
-	local sourceCharacter = Core.getUser(_source).getUsedCharacter
-	local charname = sourceCharacter.firstname .. ' ' .. sourceCharacter.lastname
 	if not SvUtils.InProcessing(_source) then
 		SvUtils.ProcessUser(_source)
 		InventoryService.subItem(_source, "default", itemId, amount)
 		local title = _U('drop')
 		local description = _U('drop') .. " "..amount.." "..itemName
 		Discord(title, _source, description)
+		DiscordLog(_source, "Item wegwerfen", "", {
+			["amount"] = amount,
+			["item"] = {
+				["id"] = itemId,
+				["name"] = itemName,
+			},
+		})
 		TriggerClientEvent("vorpInventory:createPickup", _source, itemName, amount, metadata, 1)
 		TriggerClientEvent('redm_weapon_maintenance:vorp:dropItem', _source, itemId, amount)
 		SvUtils.Trem(_source)
@@ -638,11 +660,11 @@ InventoryService.GiveWeapon = function(weaponId, target)
 		if UsersWeapons["default"][weaponId] ~= nil then
 			InventoryAPI.giveWeapon2(_target, weaponId, _source)
 		end
-		local title = _U('drop')
-		local description = "**Amount** `" ..
-			1 .. "`\n **Weapon id** `" .. weaponId .. "`" .. "\n **Playername** `" .. charname .. "`\n"
 
-		Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo, avatar)
+		DiscordLog(_source, "Waffe geben", "", DwwUtils.MergeTables(DwwUtils.GetLogCharacter(_target, 'receiver'), {
+			["weapon"] = { ["id"] = weaponId },
+		}))
+
 		TriggerClientEvent("vorp_inventory:transactionCompleted", _source)
 		SvUtils.Trem(_source)
 	end
@@ -735,12 +757,11 @@ InventoryService.GiveItem = function(itemId, amount, target)
 
 		TriggerClientEvent("vorp:TipRight", _source, _U("yougive") .. amount .. _U("of") .. ItemsLabel .. "", 2000)
 		TriggerClientEvent("vorp:TipRight", _target, _U("youreceive") .. amount .. _U("of") .. ItemsLabel .. "", 2000)
-		--TriggerEvent("vorpinventory:itemlog", _source, _target, itemName, amount)
-		local title = _U('gave')
-		local description = "**Amount** `" ..
-			amount .. "`\n **Item** `" .. itemName .. "`" .. "\n **Playername** `" .. charname .. "`\n **to** `" ..
-			charname1 .. "`"
-		Core.AddWebhook(title, Config.webhook, description, color, _source, logo, footerlogo, avatar)
+
+		DiscordLog(_source, "Item geben", "", DwwUtils.MergeTables(DwwUtils.GetLogCharacter(_target, 'receiver'), {
+			["amount"] = amount,
+			["item"] = { ["id"] = itemName },
+		}))
 	end
 
 	InventoryAPI.canCarryItem(_target, itemName, amount, function(canGive)
@@ -961,20 +982,21 @@ end
 
 --================================== CUSTOM INVENTORY ================================================--
 
-InventoryService.DoesHavePermission = function(invId, job, grade, Table)
-	if not CustomInventoryInfos[invId].UsePermissions then -- allow everyone if false or nil by fefault is false
+InventoryService.DoesHavePermission = function(invId, character, Table)
+	if not CustomInventoryInfos[invId].UsePermissions then -- allow everyone if false or nil by default is false
 		return true
 	end
 
 	if not next(Table) then -- if empty allow anyone by default is empty
 		return true
 	end
-	for jobname, jobgrades in pairs(Table) do
-		if jobname == job then
-			for _, jobgrade in ipairs(jobgrades) do
-				if grade == jobgrade then
-					return true
-				end
+
+	for job, permissionDataEntries in pairs(Table) do
+		for _, permissionDataEntry in ipairs(permissionDataEntries) do
+			if character.jobGrade == permissionDataEntry.grade and character.job == job and not permissionDataEntry.gradeIsAccess then
+				return true
+			elseif permissionDataEntry.gradeIsAccess and DwwAccessApi.HasAccess(permissionDataEntry.grade, character.charIdentifier, job) then
+				return true
 			end
 		end
 	end
@@ -996,31 +1018,13 @@ InventoryService.CheckIsBlackListed = function(invId, ItemName)
 	return true
 end
 
-InventoryService.DiscordLogs = function(inventory, itemName, amount, playerName, type)
-	local title = Config.WebHook.title
-	local color = Config.WebHook.color
-	local logo = Config.WebHook.logo
-	local footerlogo = Config.WebHook.footerlogo
-	local avatar = Config.WebHook.avatar
-	local names = Config.WebHook.webhookname
-
-	if type == "Move" then
-		local webhook = Config.WebHook.CustomInventoryMoveTo
-		local description = "**Player:**`" ..
-			playerName ..
-			"`\n **Moved to:** `" .. inventory .. "` \n**Weapon** `" ..
-			itemName .. "`\n **Count:** `" .. amount .. "`"
-		Core.AddWebhook(title, webhook, description, color, names, logo, footerlogo, avatar)
-	end
-
-	if type == "Take" then
-		local webhook = Config.WebHook.CustomInventoryTakeFrom
-		local description = "**Player:**`" ..
-			playerName ..
-			"`\n **Took from:** `" .. inventory .. "`\n **item** `" ..
-			itemName .. "`\n **amount:** `" .. amount .. "`"
-		Core.AddWebhook(title, webhook, description, color, names, logo, footerlogo, avatar)
-	end
+InventoryService.DiscordLogs = function(source, inventory, itemName, amount, type)
+	DiscordLogCustomInv(source, "Inventar " .. type, "", {
+		["action"] = type,
+		["amount"] = amount,
+		["item"] = {["id"] = itemName},
+		["inventory"] = inventory,
+	})
 end
 
 
@@ -1032,25 +1036,22 @@ InventoryService.MoveToCustom = function(obj)
 	local amount = tonumber(data.number)
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
 	local sourceIdentifier = sourceCharacter.identifier
-	local sourceName = sourceCharacter.firstname .. ' ' .. sourceCharacter.lastname
-	local job = sourceCharacter.job
-	local grade = sourceCharacter.jobGrade
 	local sourceCharIdentifier = sourceCharacter.charIdentifier
 	local Table = {}
 	if not CustomInventoryInfos[invId] then return end
 	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionMoveTo then
 		Table = CustomInventoryInfos[invId].PermissionMoveTo
 	end
-	local CanMove = InventoryService.DoesHavePermission(invId, job, grade, Table)
+	local CanMove = InventoryService.DoesHavePermission(invId, sourceCharacter, Table)
 	local IsBlackListed = InventoryService.CheckIsBlackListed(invId, string.lower(item.name)) -- lower so we can checkitems and weapons
 
 	if not IsBlackListed then
-		Core.NotifyObjective(_source, "Item is blackListed", 5000) -- add your own notifications
+		Core.NotifyObjective(_source, "Item steht auf der Blacklist", 5000) -- add your own notifications
 		return
 	end
 
 	if not CanMove then
-		Core.NotifyObjective(_source, "You dont have permision to move into the storage", 5000) -- add your own notifications
+		Core.NotifyObjective(_source, "Du kannst auf dieses Lager nicht zugreifen.", 5000) -- add your own notifications
 		return
 	end
 
@@ -1071,8 +1072,8 @@ InventoryService.MoveToCustom = function(obj)
 
 				TriggerClientEvent("vorpCoreClient:subWeapon", _source, item.id)
 				InventoryAPI.reloadInventory(_source, invId)
-				InventoryService.DiscordLogs(invId, item.name, amount, sourceName, "Move")
-				local text = "you have moved to storage"
+				InventoryService.DiscordLogs(_source, invId, item.name, amount, "Move")
+				local text = "Du hast es ins Lager gelegt."
 
 				if string.lower(item.name) == "weapon_revolver_lemat" then
 					Icon = "weapon_revolver_doubleaction" -- theres no revolver lemat texture
@@ -1095,10 +1096,10 @@ InventoryService.MoveToCustom = function(obj)
 					return
 				end
 				TriggerClientEvent("vorp:TipRight", _source,
-					"you have Moved " .. amount .. " " .. item.label .. " to storage",
+					"Du hast " .. amount .. " " .. item.label .. " ins Lager gelegt.",
 					2000)
 				InventoryAPI.reloadInventory(_source, invId)
-				InventoryService.DiscordLogs(invId, item.name, amount, sourceName, "Move")
+				InventoryService.DiscordLogs(_source, invId, item.name, amount, "Move")
 			end)
 		else
 			TriggerClientEvent("vorp:TipRight", _source, _U("fullInventory"), 2000)
@@ -1113,19 +1114,15 @@ InventoryService.TakeFromCustom = function(obj)
 	local item = data.item
 	local amount = tonumber(data.number)
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
-	local sourceName = sourceCharacter.firstname .. ' ' .. sourceCharacter.lastname
 	local sourceIdentifier = sourceCharacter.identifier
 	local sourceCharIdentifier = sourceCharacter.charIdentifier
-	local job = sourceCharacter.job
-	local grade = sourceCharacter.jobGrade
 	local Table = {}
 
 	if not CustomInventoryInfos[invId] then return end
 	if CustomInventoryInfos[invId] and CustomInventoryInfos[invId].PermissionTakeFrom then
 		Table = CustomInventoryInfos[invId].PermissionTakeFrom
 	end
-
-	local CanMove = InventoryService.DoesHavePermission(invId, job, grade, Table)
+	local CanMove = InventoryService.DoesHavePermission(invId, sourceCharacter, Table)
 
 	if not CanMove then
 		Core.NotifyObjective(_source, "you dont have permmissions to take from this storage", 5000) -- add your own notifications
@@ -1153,8 +1150,8 @@ InventoryService.TakeFromCustom = function(obj)
 				TriggerClientEvent("vorpInventory:receiveWeapon", _source, item.id, sourceIdentifier, weapon:getName(),
 					weapon:getAllAmmo())
 				InventoryAPI.reloadInventory(_source, invId)
-				InventoryService.DiscordLogs(invId, item.name, amount, sourceName, "Take")
-				local text = " you have Taken From storage "
+				InventoryService.DiscordLogs(_source, invId, item.name, amount, "Take")
+				local text = " du hast aus dem Lager genommen: "
 				if string.lower(item.name) == "weapon_revolver_lemat" then
 					Icon = "weapon_revolver_doubleaction" -- theres no revolver lemat texture
 				else
@@ -1179,9 +1176,9 @@ InventoryService.TakeFromCustom = function(obj)
 					TriggerClientEvent("vorpInventory:receiveItem", _source, item.name, itemAdded:getId(), amount,
 						itemAdded:getMetadata())
 					InventoryAPI.reloadInventory(_source, invId)
-					InventoryService.DiscordLogs(invId, item.name, amount, sourceName, "Take")
+					InventoryService.DiscordLogs(_source, invId, item.name, amount, "Take")
 					TriggerClientEvent("vorp:TipRight", _source,
-						"you have Taken " .. amount .. " " .. item.label .. " from storage ",
+						"Du hast " .. amount .. " " .. item.label .. " aus dem Lager genommen.",
 						2000)
 				end)
 			else

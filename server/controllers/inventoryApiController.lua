@@ -52,6 +52,15 @@ AddEventHandler("vorpCore:getItemCountByName", InventoryAPI.getItemCountByName)
 RegisterServerEvent("vorpCore:getUserInventory")
 AddEventHandler("vorpCore:getUserInventory", InventoryAPI.getInventory)
 
+RegisterServerEvent("vorpCore:getCustomInventory")
+AddEventHandler("vorpCore:getCustomInventory", InventoryAPI.getCustomInventory)
+
+RegisterServerEvent("vorpCore:deleteFromCustom")
+AddEventHandler("vorpCore:deleteFromCustom", InventoryAPI.deleteFromCustom)
+
+RegisterServerEvent("vorpCore:loadCustomInventory")
+AddEventHandler("vorpCore:loadCustomInventory", InventoryAPI.loadCustomInventory)
+
 RegisterServerEvent("vorpCore:LoadAllAmmo")
 AddEventHandler("vorpCore:LoadAllAmmo", InventoryAPI.LoadAllAmmo)
 

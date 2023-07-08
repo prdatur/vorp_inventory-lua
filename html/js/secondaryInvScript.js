@@ -1074,6 +1074,20 @@ function secondInventorySetup(items) {
                 OverSetTitleSecond(" ");
             }
         );
+		
+		if (!!item.metadata && !!item.metadata.tooltip) {
+            $("#item-" + index).data('powertip', () => {
+                return `${$('<div>').html(item.metadata.tooltip).text().replace(/\n/, '<br>')}`;
+            });
+            $("#item-" + index).powerTip({
+                placement: 'w',
+                followMouse: true,
+                fadeInTime: 0,
+                fadeOutTime: 0,
+                closeDelay: 0,
+                intentPollInterval: 0,
+            });
+        }
 
         $("#item-" + index).hover(
             function() {

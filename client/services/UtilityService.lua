@@ -94,7 +94,7 @@ Utils.getNearestPlayers = function()
 	for _, player in pairs(GetActivePlayers()) do
 		local target = GetPlayerPed(player)
 
-		if target ~= playerPed then
+		if target ~= playerPed and IsEntityVisible(target) then
 			local targetCoords = GetEntityCoords(target, true, true)
 			local distance = #(targetCoords - coords)
 

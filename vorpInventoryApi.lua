@@ -300,6 +300,36 @@ exports('vorp_inventoryApi', function()
         return Citizen.Await(inventory_promise)
     end
 
+    self.getCustomInventory = function(source, id)
+        local inventory_promise = promise.new()
+
+        TriggerEvent("vorpCore:getCustomInventory", source, id, function(invent)
+            inventory_promise:resolve(invent)
+        end)
+
+        return Citizen.Await(inventory_promise)
+    end
+
+    self.loadCustomInventory = function(source, id)
+        local inventory_promise = promise.new()
+
+        TriggerEvent("vorpCore:loadCustomInventory", source, id, function(invent)
+            inventory_promise:resolve(invent)
+        end)
+
+        return Citizen.Await(inventory_promise)
+    end
+
+    self.deleteFromCustom = function(source, inventoryId, item, amount)
+        local inventory_promise = promise.new()
+
+        TriggerEvent("vorpCore:deleteFromCustom", source, inventoryId, item, amount, function(invent)
+            inventory_promise:resolve(invent)
+        end)
+
+        return Citizen.Await(inventory_promise)
+    end
+
     self.CloseInv = function(source, invId)
         if invId then
             TriggerEvent("vorpCore:closeCustomInventory", source, invId)
@@ -317,7 +347,7 @@ exports('vorp_inventoryApi', function()
     end
         
     self.setCustomInventoryTotalLimit = function(invId, newLimit)
-	TriggerEvent("vorpCore:setInventoryTotalLimit", invId, newLimit)
+	    TriggerEvent("vorpCore:setInventoryTotalLimit", invId, newLimit)
     end
 
     return self

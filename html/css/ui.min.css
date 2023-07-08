@@ -39,7 +39,7 @@ body {
     z-index: 10;
 }
 
-#inventoryHud, #disabler {
+#inventoryHud {
     min-width: 1200px;
     min-height: 1290px;
     overflow: hidden;
@@ -109,7 +109,7 @@ body {
     width: 400px;
     height: 400px;
     /*background-color: black;*/
-    background-image: url(../img/bgPanel2.png);
+    background-image: url(../img/players.png);
     background-repeat: no-repeat;
     background-position: center;
     background-size: 400px 400px;
@@ -207,41 +207,43 @@ body {
 }
 
 #cash{
-
-    position:absolute;
     font-family: "crock", crock, serif;
     font-size: 18px;
     color: white;
     margin-top: 690px;
     margin-left: 430px;
-   
-  
-   
+    position: absolute;
+    top: 209px;
+    right: 456px;
+    width: auto;
+    text-align: right;
 }
 
 #gold{
-    position:absolute;
     font-family: "crock", crock, serif;
     font-size: 18px;
     color: #dac64b;
     margin-left: 590px;
     margin-bottom: 40px;
     margin-top: 690px;
-    
-
+    position: absolute;
+    top: 209px;
+    right: 551px;
+    width: 120px;
+    text-align: right;
 }
 
 #id{
-    position:absolute;
     font-family: "crock", crock, serif;
     margin-left: 770px;
-    font-size: 20px;
     color: #f8f9fa;
     margin-top: 685px;
-  
-  
-   
-   
+    font-size: 18px;
+    position: absolute;
+    top: 213px;
+    right: 672px;
+    width: 100px;
+    text-align: right;
 }
 
 #secondInventoryElement {
@@ -266,16 +268,16 @@ body {
 
 .capacity {
     /* Tested at 2k res */
-    margin-left: 775px;
-    margin-top: 47vh;
     font-size: 17px;
+    text-align: right;
+    width: 67%;
 }
 
 /* description*/
 #information { 
     text-align: center;
     position: absolute;
-    top: 850px;
+    top: 777px;
     right: 0;
     bottom: 0;
     left: 0;
@@ -286,16 +288,15 @@ body {
 #description { 
     text-align: center;
     position: absolute;
-    top: 880px;
+    top: 807px;
     right: 0;
     bottom: 0;
     left: 0;
     font-size: 14px;
     color: white;
     word-wrap: break-word;
-    width: 399px;
-    left: 400px;
-
+    width: 293px;
+    left: 457px;
 }
 
 #information2 {
@@ -359,7 +360,7 @@ body {
 
 .controls #close {
     float: right;
-    width: 15%;
+    width: 24%;
     color: #ffffff;
   
 }
@@ -415,6 +416,10 @@ input#search::-webkit-input-placeholder, input#secondarysearch::-webkit-input-pl
 }
 
 input#search:-moz-placeholder, input#secondarysearch:-moz-placeholder {
+    color: #ffffff;
+}
+
+input#search::-moz-placeholder, input#secondarysearch::-moz-placeholder {
     color: #ffffff;
 }
 
@@ -491,8 +496,8 @@ span.emoji {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 100% 100%;
-    height: 180px;
-    width: 200px;
+    height: 236px;
+    width: 500px;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -600,7 +605,7 @@ span.emoji {
         margin-top: -2px;
     }
 
-    #inventoryHud, #disabler {
+    #inventoryHud {
         min-width: 1200px;
         min-height: 1120px;
         background-size: 510px 800px;
@@ -615,11 +620,11 @@ span.emoji {
     }
 
     #information { 
-        top: 750px;
+        top: 690px;
     }
 
     #description { 
-        top: 790px;
+        top: 715px;
 
     }
     #description2 { 
@@ -647,12 +652,23 @@ span.emoji {
 
     #information2 {
         top: 750px;
-    
     }
 
     #titleHorse {
         margin-top: 11rem;
     
+    }
+
+    #gold {
+        top: 122px
+    }
+
+    #id {
+        top: 129px;
+    }
+
+    #cash {
+        top: 124px;
     }
 
 }
@@ -664,7 +680,7 @@ span.emoji {
         margin-top: 5rem;
     }
     
-    #inventoryHud, #disabler {
+    #inventoryHud {
         min-width: 1200px;
         min-height: 1120px;
         background-size: 710px 1000px;
@@ -680,17 +696,15 @@ span.emoji {
     }
     
     #information { 
-        top: 800px;
+        top: 717px;
         left: 10px;
     }
     
     #description { 
-        top: 840px;
-        left: 10px;
+        top: 756px;
     }
     #description2 { 
         top: 840px;
-        left: 10px;
     }
     .controls {
         top: 170px;
@@ -724,19 +738,18 @@ span.emoji {
     }
     
     #cash{
-        margin-top: 72%;
-        margin-left: 370px;
-        
+        margin-top: 56%;
+        right: 403px;
     }
     
     #gold{
-        margin-left: 585px;
-        margin-top: 72%;
+        top: 191px;
+        right: 519px;  
     }
     
     #id{
-        margin-left: 820px;
-        margin-top: 72%; 
+        top: 195px;
+        right: 714px;
     }
     
     .item {
@@ -750,14 +763,11 @@ span.emoji {
         width: 35px;
         height: 35px;   
     }
+
+    .capacity {
+        width: 74%;
+    }
     
-}
-
-
-#disabler {
-    z-index: 9999;
-    display: none;
-    background: none;
 }
 
 /* Animations */

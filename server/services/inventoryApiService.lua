@@ -1,3 +1,5 @@
+DwwUtils = exports.dww_utils:GetUtils()
+
 InventoryAPI = {}
 UsableItemsFunctions = {}
 local allplayersammo = {}
@@ -45,11 +47,10 @@ InventoryAPI.canCarryAmountItem = function(player, amount, cb)
 	local _source = player
 	local sourceCharacter = Core.getUser(_source).getUsedCharacter
 	local identifier = sourceCharacter.identifier
-	local charid = sourceCharacter.charIdentifier
 	local userInventory = UsersInventories["default"][identifier]
 
 	if userInventory and Config.MaxItemsInInventory.Items ~= -1 then
-		local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier, charid) + amount
+		local sourceInventoryItemCount = InventoryAPI.getUserTotalCount(identifier) + amount
 		if sourceInventoryItemCount <= Config.MaxItemsInInventory.Items then
 			cb(true)
 		else
@@ -136,6 +137,41 @@ InventoryAPI.getInventory = function(player, cb)
 			table.insert(playerItems, newItem)
 		end
 		cb(playerItems)
+	end
+end
+
+InventoryAPI.getCustomInventory = function(player, id, cb)
+	local _source = player
+	local invData = CustomInventoryInfos[id]
+	local userInventory = {}
+
+	if invData.shared then
+		userInventory = UsersInventories[id]
+	else
+		local sourceCharacter = Core.getUser(_source).getUsedCharacter
+		local sourceIdentifier = sourceCharacter.identifier
+		userInventory = UsersInventories[id][sourceIdentifier]
+	end
+
+	if userInventory then
+		local playerItems = {}
+
+		for _, item in pairs(userInventory) do
+			local newItem = {
+				id = item:getId(),
+				label = item:getLabel(),
+				name = item:getName(),
+				metadata = item:getMetadata(),
+				type = item:getType(),
+				count = item:getCount(),
+				limit = item:getLimit(),
+				canUse = item:getCanUse()
+			}
+			table.insert(playerItems, newItem)
+		end
+		cb(playerItems)
+	else
+		cb(nil)
 	end
 end
 
@@ -596,13 +632,40 @@ InventoryAPI.subItemID = function(player, id, cb)
 
 	TriggerClientEvent("vorpCoreClient:subItem", _source, item:getId(), item:getCount())
 
-	if sourceItemCount == 1 then
+	if item:getCount() <= 0 then
 		userInventory[item:getId()] = nil
 		DbService.DeleteItem(charIdentifier, item:getId())
 	else
 		DbService.SetItemAmount(charIdentifier, item:getId(), item:getCount())
 	end
 	cb(true)
+end
+
+InventoryAPI.deleteFromCustom = function(source, inventoryId, item, amount, cb)
+	local invId = inventoryId
+
+	local invData = CustomInventoryInfos[invId]
+	if not invData then return end
+
+	if type(item) ~= "table" then
+		local userInventory = {}
+
+		if invData.shared then
+			userInventory = UsersInventories[invId]
+		else
+			local sourceCharacter = Core.getUser(source).getUsedCharacter
+			local sourceIdentifier = sourceCharacter.identifier
+			userInventory = UsersInventories[invId][sourceIdentifier]
+		end
+		item = userInventory[item]
+	end
+	if item.type == "item_weapon" then
+		exports.oxmysql:execute("DELETE FROM `loadout` WHERE `id` = ?", { item })
+		UsersWeapons[invId][item.id] = nil
+	else
+		InventoryService.subItem(source, invId, item.id, amount)
+	end
+	cb()
 end
 
 InventoryAPI.subItemByName = function(player, name, amount, metadata, cb)
@@ -1183,8 +1246,10 @@ InventoryAPI.registerInventory = function(id, name, limit, acceptWeapons, shared
 	UseBlackList = UseBlackList and UseBlackList or false
 	whitelistWeapons = whitelistWeapons and whitelistWeapons or false
 
+
+	local alreadyRegistered = false
 	if CustomInventoryInfos[id] then
-		return
+		alreadyRegistered = false
 	end
 
 	CustomInventoryInfos[id] = {
@@ -1203,7 +1268,13 @@ InventoryAPI.registerInventory = function(id, name, limit, acceptWeapons, shared
 		whitelistWeapons = whitelistWeapons,
 		limitedWeapons = {},
 	}
-	UsersInventories[id] = {}
+
+	if alreadyRegistered then return end
+
+	if not UsersInventories[id] then
+		UsersInventories[id] = {}
+	end
+
 	if UsersWeapons[id] == nil then
 		UsersWeapons[id] = {}
 	end
@@ -1214,9 +1285,7 @@ InventoryAPI.registerInventory = function(id, name, limit, acceptWeapons, shared
 	end
 end
 
-
-
-InventoryAPI.AddPermissionMoveToCustom = function(id, jobName, grade)
+InventoryAPI.AddPermissionMoveToCustom = function(id, jobName, grade, isAccess)
 	if not CustomInventoryInfos[id] then
 		return -- dont add
 	end
@@ -1238,10 +1307,13 @@ InventoryAPI.AddPermissionMoveToCustom = function(id, jobName, grade)
 		end
 	end
 
-	table.insert(CustomInventoryInfos[id].PermissionMoveTo[jobName], grade) -- create table with item name and count
+	table.insert(CustomInventoryInfos[id].PermissionMoveTo[jobName], {
+		grade = grade,
+		gradeIsAccess = isAccess
+	}) -- create table with item name and count
 end
 
-InventoryAPI.RemovePermissionMoveToCustom = function(id, jobName, grade)
+InventoryAPI.RemovePermissionMoveToCustom = function(id, jobName, grade, isAccess)
 	if not CustomInventoryInfos[id] then
 		return -- dont add
 	end
@@ -1257,16 +1329,10 @@ InventoryAPI.RemovePermissionMoveToCustom = function(id, jobName, grade)
 		return -- dont add
 	end
 
-	local newPerms = {}
-	for _, currentGrade in ipairs(CustomInventoryInfos[id].PermissionMoveTo[jobName]) do
-		if grade ~= currentGrade then
-			table.insert(newPerms, currentGrade)
-		end
-	end
-	CustomInventoryInfos[id].PermissionMoveTo[jobName] = newPerms -- update table with item name and count
+	CustomInventoryInfos[id].PermissionMoveTo[jobName] = DwwUtils.RemoveItem(CustomInventoryInfos[id].PermissionMoveTo[jobName], function(x) return x.grade == grade and x.gradeIsAccess == isAccess end)
 end
 
-InventoryAPI.AddPermissionTakeFromCustom = function(id, jobName, grade)
+InventoryAPI.AddPermissionTakeFromCustom = function(id, jobName, grade, isAccess)
 	if not CustomInventoryInfos[id] then
 		return -- dont add
 	end
@@ -1282,16 +1348,19 @@ InventoryAPI.AddPermissionTakeFromCustom = function(id, jobName, grade)
 		CustomInventoryInfos[id].PermissionTakeFrom[jobName] = {}
 	end
 
-	for _, existingGrade in ipairs(CustomInventoryInfos[id].PermissionTakeFrom[jobName]) do
-		if existingGrade == grade then
+	for _, permissionData in ipairs(CustomInventoryInfos[id].PermissionTakeFrom[jobName]) do
+		if permissionData.grade == grade and permissionData.gradeIsAccess == isAccess then
 			return -- dont add
 		end
 	end
 
-	table.insert(CustomInventoryInfos[id].PermissionTakeFrom[jobName], grade) -- create table with item name and count
+	table.insert(CustomInventoryInfos[id].PermissionTakeFrom[jobName], {
+		grade = grade,
+		gradeIsAccess = isAccess
+	}) -- create table with item name and count
 end
 
-InventoryAPI.RemovePermissionTakeFromCustom = function(id, jobName, grade)
+InventoryAPI.RemovePermissionTakeFromCustom = function(id, jobName, grade, isAccess)
 	if not CustomInventoryInfos[id] then
 		return -- dont add
 	end
@@ -1308,14 +1377,7 @@ InventoryAPI.RemovePermissionTakeFromCustom = function(id, jobName, grade)
 		return -- dont add
 	end
 
-	local newPerms = {}
-	for _, currentGrade in ipairs(CustomInventoryInfos[id].PermissionTakeFrom[jobName]) do
-		if grade ~= currentGrade then
-			table.insert(newPerms, currentGrade)
-		end
-	end
-
-	CustomInventoryInfos[id].PermissionTakeFrom[jobName] = newPerms -- update table with item name and count
+	CustomInventoryInfos[id].PermissionTakeFrom[jobName] = DwwUtils.RemoveItem(CustomInventoryInfos[id].PermissionTakeFrom[jobName], function(x) return x.grade == grade and x.gradeIsAccess == isAccess end)
 end
 
 InventoryAPI.BlackListCustom = function(id, name)
@@ -1433,6 +1495,66 @@ InventoryAPI.reloadInventory = function(player, id)
 	TriggerClientEvent("vorp_inventory:ReloadCustomInventory", _source, json.encode(payload))
 end
 
+InventoryAPI.loadCustomInventory = function(source, id, cb)
+	if CustomInventoryInfos[id] == nil then return end
+
+	if CustomInventoryInfos[id].shared then
+		DbService.GetSharedInventory(id, function(inventory)
+			local characterInventory = {}
+			for _, item in pairs(inventory) do
+				if svItems[item.item] ~= nil then
+					local dbItem = svItems[item.item]
+					characterInventory[item.id] = Item:New({
+						count = tonumber(item.amount),
+						id = item.id,
+						limit = dbItem.limit,
+						label = dbItem.label,
+						metadata = SharedUtils.MergeTables(dbItem.metadata, item.metadata),
+						name = dbItem.item,
+						type = dbItem.type,
+						canUse = dbItem.usable,
+						canRemove = dbItem.can_remove,
+						createdAt = item.created_at,
+						owner = item.character_id,
+						desc = dbItem.desc
+					})
+				end
+			end
+			UsersInventories[id] = characterInventory
+			cb()
+		end)
+	else
+		local character = Core.getUser(source).getUsedCharacter
+		local identifier = character.identifier
+		local charIdentifier = character.charIdentifier
+		DbService.GetInventory(charIdentifier, id, function(inventory)
+			local characterInventory = {}
+			for _, item in pairs(inventory) do
+				if svItems[item.item] ~= nil then
+					local dbItem = svItems[item.item]
+					characterInventory[item.id] = Item:New({
+						count = tonumber(item.amount),
+						id = item.id,
+						limit = dbItem.limit,
+						label = dbItem.label,
+						metadata = SharedUtils.MergeTables(dbItem.metadata, item.metadata),
+						name = dbItem.item,
+						type = dbItem.type,
+						canUse = dbItem.usable,
+						canRemove = dbItem.can_remove,
+						createdAt = item.created_at,
+						owner = charIdentifier,
+						desc = dbItem.desc
+					})
+				end
+			end
+
+			UsersInventories[id][identifier] = characterInventory
+			cb()
+		end)
+	end
+end
+
 InventoryAPI.openCustomInventory = function(player, id)
 	local _source = player
 	if CustomInventoryInfos[id] == nil or UsersInventories[id] == nil then
@@ -1470,7 +1592,9 @@ InventoryAPI.openCustomInventory = function(player, id)
 						})
 					end
 				end
+
 				UsersInventories[id] = characterInventory
+
 				TriggerClientEvent("vorp_inventory:OpenCustomInv", _source, CustomInventoryInfos[id].name, id, capacity)
 				InventoryAPI.reloadInventory(_source, id)
 			end)
@@ -1501,6 +1625,7 @@ InventoryAPI.openCustomInventory = function(player, id)
 						})
 					end
 				end
+
 				UsersInventories[id][identifier] = characterInventory
 				TriggerClientEvent("vorp_inventory:OpenCustomInv", _source, CustomInventoryInfos[id].name, id, capacity)
 				InventoryAPI.reloadInventory(_source, id)

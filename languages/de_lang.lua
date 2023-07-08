@@ -55,5 +55,9 @@ Locales["de_lang"] = {
     cantweapons               = "Du kannst nicht noch mehr Waffen tragen",
     cantweapons2              = "Die Person hat schon zu viele Waffen",
     slow                      = "Hör auf zu spammen!",
-    gave                      = "Gave money",
+	cansell                   = "Verkaufspreis: $",
+    cantdrophere              = "kann nicht fallen gelassen werden.",
+    cantgivehere              = "kann nich gegeben werden.",
+    noplayersnearby           = "Keine Spieler in der Nähe.",
+    gave                      = "Geld gegeben.",
 }

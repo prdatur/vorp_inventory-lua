@@ -90,19 +90,26 @@ function inventorySetup(items) {
                     giveGetHowMany(item.name, item.type, item.hash, item.id, item.metadata);
                 }
             });
-
-            data.push({
-                text: LANGUAGE.drop,
-                action: function () {
-                    dropGetHowMany(item.name, item.type, item.hash, item.id, item.metadata);
-                }
-            });
         }
 
         if (data.length > 0) {
             $("#item-" + index).contextMenu([data], {
                 offsetX: 1,
                 offsetY: 1,
+            });
+        }
+		
+		if (!!item.metadata && !!item.metadata.tooltip) {
+            $("#item-" + index).data('powertip', () => {
+                return `${$('<div>').html(item.metadata.tooltip).text().replace(/\n/, '<br>')}`;
+            });
+            $("#item-" + index).powerTip({
+                placement: 'w',
+                followMouse: true,
+                fadeInTime: 0,
+                fadeOutTime: 0,
+                closeDelay: 0,
+                intentPollInterval: 0,
             });
         }
 
@@ -223,13 +230,6 @@ function inventorySetup(items) {
         }
     });
 
-    data.push({
-        text: LANGUAGE.dropmoney,
-        action: function () {
-            dropGetHowMany(m_item, "item_money", "asd", 0);
-        }
-    });
-
     if (Config.AddDollarItem) {
         $("#inventoryElement").append("<div data-label='" + m_label +
             "' style='background-image: url(\"img/items/" + m_item +
@@ -297,13 +297,6 @@ function inventorySetup(items) {
               text: LANGUAGE.givegold,
               action: function() {
                   giveGetHowManyGold();
-              }
-          });
-
-          data.push({
-              text: LANGUAGE.dropgold,
-              action: function() {
-                  dropGetHowMany(g_item, "item_gold", "asd", 0);
               }
           });
 

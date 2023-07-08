@@ -345,13 +345,20 @@ NUIService.NUIGiveItem = function(obj)
 						local itemId = data2.id
 						local metadata = data2.metadata
 						local target = tonumber(data.player)
-						print(data2.type)
+
+						local DwwUtils = exports.dww_utils:GetUtils()
+
+						if not Citizen.InvokeNative(0x9A100F1CF4546629, PlayerPedId()) then
+							CreateThread(function()
+								DwwUtils.PlayCustomAnim('script_proc@event_area@castors_pond@stage_03', 'handover_money_plr', 3500, 31)
+							end)
+						end
+
 
 						if data2.type == "item_money" then
 							if isProcessingPay then return end
 							isProcessingPay = true
 							TriggerServerEvent("vorpinventory:giveMoneyToPlayer", target, tonumber(data2.count))
-							TriggerServerEvent("vorpinventory:moneylog", target, tonumber(data2.count))
 						elseif Config.UseGoldItem and data2.type == "item_gold" then
 							if isProcessingPay then return end
 							isProcessingPay = true

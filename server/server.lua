@@ -1,6 +1,7 @@
 local VorpInv = {}
 
 VorpInv = exports.vorp_inventory:vorp_inventoryApi()
+DiscordLog = exports.dww_utils:DiscordLog(Config.webhook, GetCurrentResourceName())
 
 
 function getIdentity(source)
@@ -23,10 +24,9 @@ AddEventHandler("vorpinventory:check_slots", function()
     local part2 = Config.MaxItemsInInventory.Items
     local User = Core.getUser(_source).getUsedCharacter
     local identifier = User.identifier
-    local charid = User.charIdentifier
     local money = User.money
     local gold = User.gold
-    local stufftosend = InventoryAPI.getUserTotalCount(identifier, charid)
+    local stufftosend = InventoryAPI.getUserTotalCount(identifier)
 
     TriggerClientEvent("syn:getnuistuff", _source, stufftosend, part2, money, gold)
 end)
@@ -54,7 +54,11 @@ AddEventHandler("vorpinventory:itemlog", function(_source, targetHandle, itemNam
     local name = GetPlayerName(_source)
     local name2 = GetPlayerName(targetHandle)
     local description = name .. Config.Language.gave .. amount .. " " .. itemName .. Config.Language.to .. name2
-    --  Discord(Config.Language.gaveitem, _source, description)
+
+    DiscordLog(_source, "Item übergeben", "", DwwUtils.MergeTables(DwwUtils.GetLogCharacter(targetHandle, 'receiver'), {
+        ["amount"] = amount,
+        ["item"] = {["id"] = itemName},
+    }))
     Core.AddWebhook(_source, Config.webhook, description, color, Name, logo, footerlogo, avatar)
 end)
 
@@ -65,17 +69,14 @@ AddEventHandler("vorpinventory:weaponlog", function(targetHandle, data)
     local name2 = GetPlayerName(targetHandle)
     local description = name .. Config.Language.gave ..
         data.item .. Config.Language.to .. name2 .. Config.Language.withid .. data.id
-    -- Discord(Config.Language.gaveitem, _source, description)
-    Core.AddWebhook(_source, Config.webhook, description, color, Name, logo, footerlogo, avatar) -- if undefined it will choose vorp default.
-end)
 
-RegisterServerEvent("vorpinventory:moneylog")
-AddEventHandler("vorpinventory:moneylog", function(targetHandle, amount)
-    local _source = source
-    local name = GetPlayerName(_source)
-    local name2 = GetPlayerName(targetHandle)
-    local description = name .. Config.Language.gave .. " $" .. amount .. " " .. Config.Language.to .. name2
-    Core.AddWebhook(_source, Config.webhook, description, color, Name, logo, footerlogo, avatar)
+    DiscordLog(_source, "Waffe übergeben", "", DwwUtils.MergeTables(DwwUtils.GetLogCharacter(targetHandle, 'receiver'), {
+        ["weapon"] = {
+            ["id"] = data.id,
+            ["name"] = data.item,
+        },
+    }))
+    Core.AddWebhook(_source, Config.webhook, description, color, Name, logo, footerlogo, avatar) -- if undefined it will choose vorp default.
 end)
 
 RegisterServerEvent("vorpinventory:netduplog")
@@ -86,6 +87,8 @@ AddEventHandler("vorpinventory:netduplog", function()
         name .. Config.NetDupWebHook.Language.descriptionend
 
     if Config.NetDupWebHook.Active then
+        local userCharacter = Core.getUser(_source).getUsedCharacter
+        DiscordLog(userCharacter, "Netdupe")
         Core.AddWebhook(Config.NetDupWebHook.Language.title, Config.webhook, description, color, name, logo, footerlogo,
             avatar)
     else

@@ -25,7 +25,7 @@ InventoryApiService.subItem = function(id, qty, metadata)
 
 
     UserInventory[id]:setCount(qty)
-    if UserInventory[id]:getCount() == 0 then
+    if UserInventory[id]:getCount() <= 0 then
         UserInventory[id] = nil
     end
     NUIService.LoadInv()
